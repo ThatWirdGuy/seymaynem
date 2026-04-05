@@ -45,6 +45,13 @@
           request: () => {}
         }
       },
+      features: {
+        LoadingAPI: {
+          ready: () => {
+            console.log('LoadingAPI.ready stub called');
+          }
+        }
+      },
       adv: {
         showFullscreenAdv: ({ callbacks }) => {
           if (callbacks && callbacks.onClose) callbacks.onClose(false);
@@ -91,6 +98,15 @@
         setLeaderboardScore: () => Promise.resolve()
       })
     };
+
+    function GameReadyAPI() {
+      console.log('GameReadyAPI stub called');
+      try {
+        if (ysdk && ysdk.features && ysdk.features.LoadingAPI) {
+          ysdk.features.LoadingAPI.ready();
+        }
+      } catch(e) {}
+    }
 
     var environmentData = JSON.stringify({
       "language": "en",
@@ -293,7 +309,6 @@
         const dataUrl = URL.createObjectURL(blob);
 
         document.getElementById('status').textContent = 'Starting game...';
-
         document.getElementById('loading').style.display = 'none';
         document.getElementById('unity-canvas').style.display = 'block';
 
