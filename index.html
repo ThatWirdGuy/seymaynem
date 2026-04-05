@@ -22,6 +22,135 @@
 
   <script src="Build/Driver Online Cars.loader.js"></script>
   <script>
+    // ---- Yandex SDK Stubs ----
+    var myGameInstance = null;
+
+    var environmentData = JSON.stringify({
+      "language": "en",
+      "domain": "com",
+      "deviceType": "desktop",
+      "isMobile": false,
+      "isDesktop": true,
+      "isTablet": false,
+      "isTV": false,
+      "appID": "0",
+      "browserLang": "en",
+      "payload": null,
+      "promptCanShow": false,
+      "reviewCanShow": false,
+      "platform": navigator.platform,
+      "browser": "Chrome"
+    });
+
+    var playerData = JSON.stringify({
+      "playerAuth": "rejected",
+      "playerName": "Guest",
+      "playerId": "guest_001",
+      "playerPhoto": "",
+      "payingStatus": "non_paying"
+    });
+
+    var cloudSaves = 'noData';
+    var paymentsData = 'none';
+
+    function InitGame() {
+      console.log('InitGame called');
+    }
+
+    function FullAdShow() {
+      console.log('FullAdShow stub');
+      if (myGameInstance) {
+        myGameInstance.SendMessage('YandexGame', 'CloseFullAd', 'false');
+      }
+    }
+
+    function RewardedShow(id) {
+      console.log('RewardedShow stub', id);
+      if (myGameInstance) {
+        myGameInstance.SendMessage('YandexGame', 'CloseVideo');
+      }
+    }
+
+    function StickyAdActivity(show) {
+      console.log('StickyAdActivity stub', show);
+    }
+
+    function Review() {
+      console.log('Review stub');
+    }
+
+    function PromptShow() {
+      console.log('PromptShow stub');
+      if (myGameInstance) {
+        myGameInstance.SendMessage('YandexGame', 'OnPromptFail');
+      }
+    }
+
+    function SaveCloud(jsonData, flush) {
+      console.log('SaveCloud stub', jsonData);
+      try { localStorage.setItem('cloudSave', jsonData); } catch(e) {}
+    }
+
+    function LoadCloud(sendback) {
+      var data = 'noData';
+      try { data = localStorage.getItem('cloudSave') || 'noData'; } catch(e) {}
+      if (sendback && myGameInstance) {
+        myGameInstance.SendMessage('YandexGame', 'SetLoadSaves', data);
+      }
+      return Promise.resolve(data);
+    }
+
+    function GetPayments(sendback) {
+      if (sendback && myGameInstance) {
+        myGameInstance.SendMessage('YandexGame', 'PaymentsEntries', 'none');
+      }
+      return Promise.resolve('none');
+    }
+
+    function BuyPayments(id) {
+      console.log('BuyPayments stub', id);
+      if (myGameInstance) {
+        myGameInstance.SendMessage('YandexGame', 'OnPurchaseFailed', id);
+      }
+    }
+
+    function ConsumePurchase(id) { console.log('ConsumePurchase stub', id); }
+    function ConsumePurchases() { console.log('ConsumePurchases stub'); }
+
+    function GetLeaderboardScores(nameLB, maxPlayers, quantityTop, quantityAround, photoSize, auth) {
+      console.log('GetLeaderboardScores stub');
+      if (myGameInstance) {
+        myGameInstance.SendMessage('YandexGame', 'LeaderboardEntries', JSON.stringify({
+          technoName: nameLB, isDefault: true, isInvertSortOrder: false,
+          decimalOffset: 0, type: 'numeric', entries: 'no data',
+          ranks: [], photos: [], names: [], scores: [], uniqueIDs: []
+        }));
+      }
+    }
+
+    function SetLeaderboardScores(name, score) {
+      console.log('SetLeaderboardScores stub', name, score);
+    }
+
+    function OpenAuthDialog() {
+      console.log('OpenAuthDialog stub');
+    }
+
+    function RequestingEnvironmentData(sendback) {
+      if (sendback && myGameInstance) {
+        myGameInstance.SendMessage('YandexGame', 'SetEnvirData', environmentData);
+      }
+      return Promise.resolve(environmentData);
+    }
+
+    function InitPlayer(sendback) {
+      if (sendback && myGameInstance) {
+        myGameInstance.SendMessage('YandexGame', 'SetInitializationSDK', playerData);
+      }
+      return Promise.resolve(playerData);
+    }
+
+    // ---- Load & Start ----
     const parts = [
       "Build/Driver Online Cars.data.part000.unityweb",
       "Build/Driver Online Cars.data.part001.unityweb",
@@ -63,7 +192,7 @@
         document.getElementById('loading').style.display = 'none';
         document.getElementById('unity-canvas').style.display = 'block';
 
-        createUnityInstance(document.querySelector("#unity-canvas"), {
+        myGameInstance = await createUnityInstance(document.querySelector("#unity-canvas"), {
           dataUrl: dataUrl,
           frameworkUrl: "Build/Driver Online Cars.framework.js.unityweb",
           codeUrl: "Build/Driver Online Cars.wasm.unityweb",
@@ -71,13 +200,17 @@
           companyName: "VayGame",
           productName: "Driver Online Cars",
           productVersion: "1.1.0.0",
-        }).catch(err => {
-          document.getElementById('loading').style.display = 'block';
-          document.getElementById('status').textContent = 'Error: ' + err;
         });
 
+        // Send initial data to game
+        myGameInstance.SendMessage('YandexGame', 'SetEnvirData', environmentData);
+        myGameInstance.SendMessage('YandexGame', 'SetInitializationSDK', playerData);
+        myGameInstance.SendMessage('YandexGame', 'SetLoadSaves', cloudSaves);
+
       } catch (e) {
+        document.getElementById('loading').style.display = 'block';
         document.getElementById('status').textContent = 'Error: ' + e.message;
+        console.error(e);
       }
     }
 
