@@ -6,23 +6,82 @@
   <title>Driver Online Cars</title>
   <style>
     * { margin: 0; padding: 0; }
-    body { background: #000; }
+    body { background: #000; color: white; font-family: sans-serif; }
     canvas { display: block; width: 100vw; height: 100vh; }
+    #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; }
+    #bar-bg { width: 300px; height: 20px; background: #333; border-radius: 10px; margin-top: 10px; }
+    #bar { height: 20px; background: #0f0; border-radius: 10px; width: 0%; transition: width 0.2s; }
   </style>
 </head>
 <body>
-  <canvas id="unity-canvas"></canvas>
+  <div id="loading">
+    <div id="status">Loading game data...</div>
+    <div id="bar-bg"><div id="bar"></div></div>
+  </div>
+  <canvas id="unity-canvas" style="display:none;"></canvas>
+
   <script src="Build/Driver Online Cars.loader.js"></script>
   <script>
-    createUnityInstance(document.querySelector("#unity-canvas"), {
-      dataUrl: "Build/Driver Online Cars.data.unityweb",
-      frameworkUrl: "Build/Driver Online Cars.framework.js.unityweb",
-      codeUrl: "Build/Driver Online Cars.wasm.unityweb",
-      streamingAssetsUrl: "StreamingAssets",
-      companyName: "VayGame",
-      productName: "Driver Online Cars",
-      productVersion: "1.1.0.0",
-    });
+    const parts = [
+      "Build/Driver Online Cars.data.part000.unityweb",
+      "Build/Driver Online Cars.data.part001.unityweb",
+      "Build/Driver Online Cars.data.part002.unityweb",
+      "Build/Driver Online Cars.data.part003.unityweb",
+      "Build/Driver Online Cars.data.part004.unityweb",
+      "Build/Driver Online Cars.data.part005.unityweb",
+      "Build/Driver Online Cars.data.part006.unityweb",
+      "Build/Driver Online Cars.data.part007.unityweb",
+    ];
+
+    async function fetchPart(url, index) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
+      document.getElementById('status').textContent = `Loading part ${index + 1} of ${parts.length}...`;
+      document.getElementById('bar').style.width = `${((index + 1) / parts.length) * 100}%`;
+      return res.arrayBuffer();
+    }
+
+    async function loadAndStart() {
+      try {
+        const buffers = [];
+        for (let i = 0; i < parts.length; i++) {
+          buffers.push(await fetchPart(parts[i], i));
+        }
+
+        document.getElementById('status').textContent = 'Assembling...';
+        const totalLength = buffers.reduce((sum, b) => sum + b.byteLength, 0);
+        const combined = new Uint8Array(totalLength);
+        let offset = 0;
+        for (const buf of buffers) {
+          combined.set(new Uint8Array(buf), offset);
+          offset += buf.byteLength;
+        }
+
+        const blob = new Blob([combined], { type: 'application/octet-stream' });
+        const dataUrl = URL.createObjectURL(blob);
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('unity-canvas').style.display = 'block';
+
+        createUnityInstance(document.querySelector("#unity-canvas"), {
+          dataUrl: dataUrl,
+          frameworkUrl: "Build/Driver Online Cars.framework.js.unityweb",
+          codeUrl: "Build/Driver Online Cars.wasm.unityweb",
+          streamingAssetsUrl: "StreamingAssets",
+          companyName: "VayGame",
+          productName: "Driver Online Cars",
+          productVersion: "1.1.0.0",
+        }).catch(err => {
+          document.getElementById('loading').style.display = 'block';
+          document.getElementById('status').textContent = 'Error: ' + err;
+        });
+
+      } catch (e) {
+        document.getElementById('status').textContent = 'Error: ' + e.message;
+      }
+    }
+
+    loadAndStart();
   </script>
 </body>
 </html>
